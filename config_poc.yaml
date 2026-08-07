@@ -1,0 +1,71 @@
+####################################################################################################
+# Project name      : Outlook Support Classification Agent -- Foundry v2 (ServiceNow-shaped KB)    #
+# Business owner    : <fill: business owner / team>                                                #
+# Notebook Author   : <fill: author name / team>                                                   #
+# Date              : <fill: date>                                                                 #
+#                                                                                                  #
+# Purpose of file:                                                                                 #
+#   1. Single merged POC config for the v2 deployment (Foundry agent + in-process KB source).      #
+#   2. NON-SECRET settings only; secret VALUES are NEVER stored here.                              #
+#   3. v2 has NO Azure OpenAI re-ranker: the agent selects from the full local KB (kb_index.json). #
+#                                                                                                  #
+#   Managed Identity def:- auth is Entra ID / Managed Identity by name (NO API keys).              #
+#                                                                                                  #
+# Loaded by:-                                                                                      #
+#   - runtime_config.load_settings() parses this file into typed Pydantic models (fail fast).      #
+####################################################################################################
+
+# NOTE: endpoints, deployment names and model names are non-secret configuration.
+# NOTE: never put secret VALUES here. Auth is Entra ID / Managed Identity (no API keys).
+# NOTE: v2 removed the Azure OpenAI ranker section -- there is no ranker in this deployment.
+
+environment_name: "poc"
+
+# --- Knowledge-base source (static, ServiceNow-shaped seed index shipped in THIS folder) ------
+# The agent selects from the FULL set returned here (no re-ranker). In production this seam is
+# swapped for a real ServiceNow KB search API returning the same record shape (number + content).
+knowledge_base:
+  index_path: "kb_index.json"    # sits in this deployment folder (resolved relative to runtime_config.py)
+  default_top_k: 5               # retained for config compatibility; unused (v2 feeds the whole KB)
+
+# --- Microsoft Foundry agent (azure-ai-projects; Responses + conversation) --------------------
+# The agent is addressed by NAME + VERSION and invoked via the Responses API over a Foundry
+# conversation (stable conv_id = the conversation id). KB selection runs in-process.
+foundry:
+  project_endpoint: "<fill: https://<res>.services.ai.azure.com/api/projects/<project>>"
+  agent_name: "clasification-agent-v2"   # v2 agent (provision a NEW Foundry agent with THIS exact name + the v2 prompt)
+  agent_version: "latest"          # "latest"=newest, "<n>"=pin (e.g. "9"), ""=Foundry default
+  isolation_key: ""                # or a session isolation key
+  agent_model_name: "gpt-4.1-mini" # used only for cost lookup/logging of response token usage
+  auto_create_session: true        # true: start a conversation when conv_id is absent; false: require conv_id
+  request_timeout_seconds: 90
+  max_search_rounds: 6             # max in-process KB fetches per turn before a no_match handoff
+
+# --- Structured logging -> Event Hub -> Splunk (off by default) -------------------------------
+event_hub:
+  enabled: false
+  fully_qualified_namespace: "<fill: your-poc-namespace.servicebus.windows.net>"
+  event_hub_name: "<fill: poc event hub name>"
+
+# --- Retry / backoff (per-operation overrides allowed) ----------------------------------------
+retry:
+  default_max_attempts: 4
+  base_delay_seconds: 0.5
+  max_delay_seconds: 8
+  per_tool_max_attempts:
+    foundry_agent: 4
+
+# --- Cost tracking: PER-TOKEN prices keyed by model name --------------------------------------
+# Derive per-token prices from Azure's per-1M pricing by dividing by 1_000_000.
+cost:
+  prices:
+    gpt-4.1-mini:
+      input_price: 0.0000004
+      output_price: 0.0000016
+
+# --- Logging ----------------------------------------------------------------------------------
+logging:
+  log_level: "INFO"
+
+# NOTE: no external DB is used. The Foundry conversation id (returned to the caller as conv_id)
+# IS the conversation handle; Foundry keeps the history server-side.

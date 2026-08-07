@@ -1,0 +1,11 @@
+.git*
+.vscode
+.venv
+__pycache__
+local.settings.json
+test.py
+test_*.py
+*.md
+*.html
+kb_source/
+ingest_kb_articles.py

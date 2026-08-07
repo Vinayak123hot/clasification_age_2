@@ -1,0 +1,43 @@
+# ##########################################################################
+# Outlook Support Classification Agent (Foundry) - COMBINED single deployment
+#
+# One Function App that runs the Foundry agent AND the KB search in-process
+# (no separate tool endpoint, no HTTP loopback, no 'requests', no Key Vault).
+#
+# IMPORTANT: install these from your APPROVED PRIVATE index (Azure Artifacts /
+# JFrog Artifactory / Nexus), NOT from public PyPI. This file lists package
+# names and version floors; point pip at your private index at install time:
+#
+#   pip install -r requirements.txt --index-url https://<your-private-index>/simple
+#
+# After a successful install, freeze a hash-pinned lockfile for repeatable builds:
+#   pip freeze > requirements.lock.txt
+# ##########################################################################
+
+# --- Microsoft Foundry Agent client (AIProjectClient: conversation + Responses)
+# Pinned to 2.1.0 (the version the gateway code was written against). 2.1.0+ needs openai 2.x.
+azure-ai-projects==2.1.0
+
+# --- OpenAI client: required by the Foundry gateway (Responses API via azure-ai-projects).
+# azure-ai-projects 2.1.0 requires openai>=2.8.0 (openai 2.x). v2 has NO Azure OpenAI ranker.
+openai>=2.8.0,<3
+
+# --- Entra ID authentication (Managed Identity / Service Principal)
+azure-identity>=1.19
+
+# --- Structured log forwarding to Event Hub -> Splunk (used only when enabled)
+azure-eventhub>=5.12
+
+# --- Data validation / typed models at every boundary (Pydantic v2)
+pydantic>=2.9,<3
+
+# --- YAML configuration parsing
+PyYAML>=6.0.2
+
+# --- Azure Functions HTTP host (JSON in/out entry point: __init__.py)
+azure-functions>=1.21
+
+# --- LOCAL ONLY (NOT deployed): the one-time ingest (ingest_kb_articles.py) needs python-docx.
+#     Install it in your local POC environment to build kb_index.json:  pip install python-docx
+#     It is excluded from deployment via .funcignore and is never imported at runtime.
+

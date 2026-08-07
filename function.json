@@ -1,0 +1,22 @@
+{
+  "scriptFile": "__init__.py",
+  "entryPoint": "main",
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": [
+        "post",
+        "get"
+      ],
+      "route": "outlook-classification-v2"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "$return"
+    }
+  ]
+}

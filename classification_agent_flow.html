@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Outlook Classification Agent — Foundry v2 (ServiceNow-shaped KB) — flow &amp; features</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#111832; --panel2:#0e152b; --ink:#e8ecf8; --muted:#9aa6c6;
+    --line:#26314f; --accent:#7c9cff; --accent2:#5ad1c9;
+    --search:#f0b429; --followup:#5aa9ff; --resolved:#3ecf8e; --nomatch:#ff7a7a; --error:#c77dff;
+    --code:#0a0f1f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b1020,#0d1226 60%,#0b1020);color:var(--ink);
+       font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 22px 80px}
+  header.hero{padding:26px 28px;border:1px solid var(--line);border-radius:16px;
+    background:radial-gradient(1200px 300px at 10% -20%,rgba(124,156,255,.18),transparent),var(--panel);}
+  h1{margin:0 0 6px;font-size:25px;letter-spacing:.2px}
+  .badge{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:6px;background:var(--accent);color:#0b1020;margin-left:8px;vertical-align:middle}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12.5px;color:var(--muted)}
+  .chip b{color:var(--ink);font-weight:600}
+  section{margin-top:34px}
+  h2{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+  h2 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--accent);color:#0b1020;font-size:13px;font-weight:800}
+  .lead{color:var(--muted);margin:2px 0 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.g2,.g4{grid-template-columns:1fr}}
+  .callout{border-left:4px solid var(--accent2);background:var(--panel2);padding:14px 18px;border-radius:0 12px 12px 0;color:#cfe0ff}
+  .callout b{color:#fff}
+  code,pre{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow:auto;font-size:13px;color:#d6e0ff}
+  .kbd{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:12.5px;color:#cdd8f6}
+  .flow{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:14px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .step .num{flex:0 0 30px;height:30px;border-radius:8px;background:var(--accent);color:#0b1020;font-weight:800;display:grid;place-items:center}
+  .step h4{margin:0 0 3px;font-size:15px}
+  .step p{margin:0;color:var(--muted);font-size:13.5px}
+  .down{align-self:center;color:var(--line);font-size:20px;line-height:1;margin:6px 0}
+  .st{border-radius:12px;padding:14px 16px;border:1px solid var(--line);background:var(--panel)}
+  .st .tag{display:inline-block;font-weight:800;font-size:12px;letter-spacing:.4px;padding:3px 10px;border-radius:999px;margin-bottom:8px}
+  .st h4{margin:6px 0 4px;font-size:14.5px}
+  .st p{margin:0;color:var(--muted);font-size:13px}
+  .t-search{background:rgba(240,180,41,.14);color:var(--search);border:1px solid rgba(240,180,41,.4)}
+  .t-followup{background:rgba(90,169,255,.14);color:var(--followup);border:1px solid rgba(90,169,255,.4)}
+  .t-resolved{background:rgba(62,207,142,.14);color:var(--resolved);border:1px solid rgba(62,207,142,.4)}
+  .t-nomatch{background:rgba(255,122,122,.14);color:var(--nomatch);border:1px solid rgba(255,122,122,.4)}
+  .who{font-size:11.5px;color:var(--muted);margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+  .arch{display:grid;grid-template-columns:1fr;gap:10px}
+  .lane{border:1px dashed var(--line);border-radius:12px;padding:12px 14px;background:var(--panel2)}
+  .lane h5{margin:0 0 8px;font-size:12px;letter-spacing:.6px;color:var(--muted);text-transform:uppercase}
+  .boxes{display:flex;flex-wrap:wrap;gap:10px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;min-width:150px}
+  .box b{display:block;color:#fff;font-size:13px;margin-bottom:2px}
+  .box span{color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.3px;text-transform:uppercase}
+  .pill{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--muted)}
+  .seq{display:flex;flex-direction:column;gap:8px}
+  .seq .row{display:grid;grid-template-columns:130px 1fr;gap:12px;align-items:start}
+  .seq .lane-lbl{color:var(--accent2);font-size:12px;font-weight:700;text-align:right;padding-top:2px}
+  .seq .msg{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;color:#d6e0ff}
+  .foot{margin-top:40px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1>Outlook Support Classification Agent — Foundry <span class="badge">v2</span></h1>
+    <p class="sub">A Microsoft&nbsp;Foundry agent that <b>classifies a user's Outlook issue to a knowledge-base article</b>. On each search the function hands the agent the <b>whole local KB</b> — shaped exactly like the ServiceNow KB search API — and the <b>agent itself picks</b> the match. <b>No LLM re-ranker.</b></p>
+    <div class="chips">
+      <span class="chip"><b>Endpoint</b> &nbsp;POST /api/outlook-classification-v2</span>
+      <span class="chip"><b>Input</b> &nbsp;{ conv_id?, message }</span>
+      <span class="chip"><b>Output</b> &nbsp;{ conv_id, status, agent_message, kb_id, summary, chat_close }</span>
+      <span class="chip"><b>KB</b> &nbsp;ServiceNow-shaped kb_index.json</span>
+      <span class="chip"><b>Agent</b> &nbsp;clasification-agent-v2</span>
+      <span class="chip"><b>Auth</b> &nbsp;Managed Identity — no keys</span>
+    </div>
+  </header>
+
+  <!-- 1. THE IDEA -->
+  <section>
+    <h2><span class="n">1</span> The idea in one line</h2>
+    <div class="callout">
+      A user describes an Outlook problem in plain English. The agent clarifies if needed, then reads the knowledge base and returns <b>exactly one</b> outcome: a matched <b>KB article</b> (routed by its <code>number</code>), a <b>clarifying question</b>, or a polite <b>human hand-off</b> — every match traceable to a <b>real</b> article, and the user only ever sees a friendly message (never article internals).
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <h4 style="margin:0 0 6px">v2: the agent is the selector (no re-ranker)</h4>
+        <p style="margin:0;color:var(--muted)">On <code>search</code>, the function returns the <b>entire</b> local KB to the agent and the agent chooses by <b>reading the article content</b>. There is no Azure&nbsp;OpenAI ranker and no relevance score — one fewer model call, no scoring heuristics.</p>
+      </div>
+      <div class="card">
+        <h4 style="margin:0 0 6px">POC ⇆ production seam</h4>
+        <p style="margin:0;color:var(--muted)">The local <code>kb_index.json</code> mirrors the <b>ServiceNow</b> search-result shape (<code>number</code> + full "Article Content"). In production the <code>search</code> step becomes a real <b>ServiceNow API</b> call returning the same shape — only the KB source swaps; agent, prompt, grounding and response stay identical.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. TURN FLOW -->
+  <section>
+    <h2><span class="n">2</span> How one turn flows</h2>
+    <p class="lead">Every HTTP call is one turn. Internally the function may loop with the agent (search &rarr; whole KB &rarr; decide) but returns <b>one</b> response — the terminal reply only.</p>
+    <div class="flow">
+      <div class="step"><div class="num">1</div><div><h4>Caller sends a message</h4><p>First turn: <code>{ "message": "outlook email stuck in outbox" }</code> (no <code>conv_id</code>).</p></div></div>
+      <div class="down">▼</div>
+      <div class="step"><div class="num">2</div><div><h4>Function ensures a conversation</h4><p>No <code>conv_id</code> + <code>auto_create_session</code> &rarr; <code>conversations.create()</code> mints a Foundry <code>conv_id</code> (returned to the caller).</p></div></div>
+      <div class="down">▼</div>
+      <div class="step"><div class="num">3</div><div><h4>Function asks the agent</h4><p><code>responses.create(...)</code> in the conversation. The agent replies with <b>strict JSON</b> — one of four statuses.</p></div></div>
+      <div class="down">▼</div>
+      <div class="step" style="border-color:rgba(240,180,41,.45)"><div class="num" style="background:var(--search)">4</div><div><h4>On <span style="color:var(--search)">search</span> → feed the WHOLE KB back</h4><p><code>servicenow_kb_source.get_all_candidates()</code> returns <b>every</b> local record (ServiceNow-shaped); the function formats them as <code>KB_SEARCH_RESULTS</code> and the agent selects. <b>No ranker.</b></p></div></div>
+      <div class="down">▼</div>
+      <div class="step"><div class="num">5</div><div><h4>One HTTP response per turn</h4><p>The user only ever sees <b>follow_up</b>, <b>resolved</b>, or <b>no_match</b>. Continue the issue by echoing <code>conv_id</code> until <code>chat_close: true</code>.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 3. STATUSES -->
+  <section>
+    <h2><span class="n">3</span> The agent speaks in four statuses</h2>
+    <p class="lead">The per-turn reply is a strict JSON object. One status (<b>search</b>) is a private instruction to the function; the other three are shown to the user.</p>
+    <div class="grid g4">
+      <div class="st"><span class="tag t-search">SEARCH</span><h4>“Run a KB search for me”</h4><p>Carries a <code>query</code>. The function returns the whole KB and loops back.</p><div class="who">🔒 Internal — never shown to the user</div></div>
+      <div class="st"><span class="tag t-followup">FOLLOW_UP</span><h4>A clarifying question</h4><p>Not enough info yet. Conversation stays open (<code>chat_close:false</code>).</p><div class="who">👤 Shown to the user</div></div>
+      <div class="st"><span class="tag t-resolved">RESOLVED</span><h4>Routed to a matched article</h4><p>Real <code>kb_id</code> = the article's <code>number</code> (internal); the user sees a professional thank-you. Chat closes.</p><div class="who">👤 thank-you only · ✅ number verified vs index</div></div>
+      <div class="st"><span class="tag t-nomatch">NO_MATCH</span><h4>No article — human hand-off</h4><p>Names the user's task, logs a <code>summary</code> of their issue; a person follows up. Chat closes.</p><div class="who">👤 Shown to the user</div></div>
+    </div>
+  </section>
+
+  <!-- 4. THE LOOP -->
+  <section>
+    <h2><span class="n">4</span> The in-process loop &amp; safety rails</h2>
+    <p class="lead"><code>turn_orchestrator._run_turn_loop</code> — bounded (never infinite) and guarded (never returns a made-up article).</p>
+    <div class="card">
+      <div class="flow">
+        <div class="step"><div class="num">A</div><div><h4>Ask the agent</h4><p>Send the user message (or fed-back KB / a nudge) into the conversation; parse the strict-JSON reply.</p></div></div>
+        <div class="down">▼</div>
+        <div class="step" style="border-color:rgba(240,180,41,.45)"><div class="num" style="background:var(--search)">B</div><div><h4>status = <span style="color:var(--search)">search</span> → return the WHOLE KB (no ranker)</h4><p><code>get_all_candidates()</code> returns all records; the agent reads their "Article Content" and decides. Because every search returns the full set, the agent effectively classifies after one search; the <code>max_search_rounds</code> budget still guards the loop.</p></div></div>
+        <div class="down">▼</div>
+        <div class="step" style="border-color:rgba(62,207,142,.45)"><div class="num" style="background:var(--resolved)">C</div><div><h4>status = <span style="color:var(--resolved)">resolved</span> → grounding guard</h4><p>Accept the <code>kb_id</code> only if it's a real <code>number</code> in the index (<code>is_known_kb_id</code>). If fabricated: <b>nudge</b> the agent back to real numbers (budget left) or return a safe <b>no_match</b>.</p></div></div>
+        <div class="down">▼</div>
+        <div class="step"><div class="num">D</div><div><h4>Terminal reply → response</h4><p><b>follow_up / resolved / no_match</b> map to the HTTP response; a hard backstop closes with <b>no_match</b> if the loop is ever exhausted.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. CONTRACT -->
+  <section>
+    <h2><span class="n">5</span> Request / response contract</h2>
+    <p class="lead">New issue → no <code>conv_id</code>; continue by echoing the same <code>conv_id</code> until <code>chat_close: true</code>. Off-topic / misuse: steer back each turn, then a polite <code>no_match</code> wind-down after ~8–10 unproductive turns.</p>
+    <div class="two">
+      <div>
+        <p class="pill">First turn — request</p>
+        <pre>POST /api/outlook-classification-v2
+{ "message": "outlook email stuck in outbox" }</pre>
+        <p class="pill" style="color:var(--resolved)">resolved — thank-you, no article mention; kb_id = the number</p>
+<pre>{ "conv_id": "conv_abc123",
+  "status": "resolved",
+  "agent_message": "Thank you for the details — I'm working on this for you now; please bear with me.",
+  "kb_id": "KB0024755",
+  "summary": "Emails are stuck in the Outbox and won't send.",
+  "chat_close": true }</pre>
+      </div>
+      <div>
+        <p class="pill" style="color:var(--followup)">follow_up — response</p>
+<pre>{ "conv_id": "conv_abc123",
+  "status": "follow_up",
+  "agent_message": "Is this the Outlook desktop app or Outlook on the web?",
+  "kb_id": null, "summary": null,
+  "chat_close": false }</pre>
+        <p class="pill" style="color:var(--nomatch)">no_match — names the user's task, no article mention</p>
+<pre>{ "conv_id": "conv_abc123",
+  "status": "no_match",
+  "agent_message": "I don't have the information I need to help with syncing your Outlook calendar with an external app right now — one of our team members will reach out to help you.",
+  "kb_id": null,
+  "summary": "Wants to sync their Outlook calendar with an external app.",
+  "chat_close": true }</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. INGESTION -->
+  <section>
+    <h2><span class="n">6</span> Ingestion — building the ServiceNow-shaped KB</h2>
+    <p class="lead">A one-time, local, <b>no-LLM</b> step turns your KB documents into the exact structure the agent expects.</p>
+    <div class="card seq">
+      <div class="row"><div class="lane-lbl">kb_source/</div><div class="msg">one <code>KB####.docx</code> per article (e.g. <code>KB0024755.docx</code>) — the KB number is the filename</div></div>
+      <div class="row"><div class="lane-lbl">ingest</div><div class="msg"><code>python ingest_kb_articles.py</code> — reads each doc's <b>full text verbatim</b> (python-docx)</div></div>
+      <div class="row"><div class="lane-lbl">kb_index.json</div><div class="msg">ServiceNow shape: <code>{ "searchResults": [ { "columns": [ …, {"fieldName":"number","value":"KB0024755"}, {"fieldName":"text","label":"Article Content","value":"&lt;full text&gt;"} … ] } ] }</code></div></div>
+      <div class="row"><div class="lane-lbl">runtime</div><div class="msg"><code>servicenow_kb_source</code> loads it and returns all records on <code>search</code>; <code>number</code> + "Article Content" are the load-bearing fields (sys_id / dates / category are placeholders)</div></div>
+    </div>
+  </section>
+
+  <!-- 7. COMPONENTS -->
+  <section>
+    <h2><span class="n">7</span> What's inside (v2 modules)</h2>
+    <p class="lead">Built once per worker (cached). Professional, collision-free module names so v2 co-deploys with v1 in the same Function App.</p>
+    <div class="arch">
+      <div class="lane"><h5>HTTP boundary</h5><div class="boxes">
+        <div class="box"><b>__init__.py · main()</b><span>Decode JSON → 400 · delegate · 200 / 400 / 500. Route <code>outlook-classification-v2</code>.</span></div>
+      </div></div>
+      <div style="text-align:center;color:var(--line)">▼</div>
+      <div class="lane"><h5>Orchestration brain</h5><div class="boxes">
+        <div class="box"><b>turn_orchestrator.py</b><span>ClassificationTurnService: resolves the conversation, runs the loop, feeds the whole KB on search, applies the grounding guard, shapes the response.</span></div>
+      </div></div>
+      <div style="text-align:center;color:var(--line)">▼</div>
+      <div class="lane"><h5>External calls / KB source (Managed Identity — no keys)</h5><div class="boxes">
+        <div class="box"><b>foundry_agent_client.py</b><span>FoundryAgentGateway: AIProjectClient + Responses API (<code>agent_reference</code> + conversation). Bounded timeout + retry + cost.</span></div>
+        <div class="box"><b>servicenow_kb_source.py</b><span>KnowledgeBaseSource: loads kb_index.json, returns ALL records, validates the resolved number. <b>No LLM, no ranker.</b></span></div>
+      </div></div>
+      <div style="text-align:center;color:var(--line)">▼</div>
+      <div class="lane"><h5>Contracts + config + cross-cutting</h5><div class="boxes">
+        <div class="box"><b>service_contracts.py</b><span>Pydantic boundary models (request / agent output / response).</span></div>
+        <div class="box"><b>runtime_config.py</b><span>Typed YAML config. <b>No azure_openai section.</b></span></div>
+        <div class="box"><b>telemetry_logging.py</b><span>Structured JSON logs (+ optional Event Hub).</span></div>
+        <div class="box"><b>backoff_retry.py</b><span>Exponential backoff + jitter.</span></div>
+        <div class="box"><b>model_cost_meter.py</b><span>Per-token cost of the agent calls.</span></div>
+        <div class="box"><b>correlation_ids.py</b><span>Bootstrap log id before conv_id exists.</span></div>
+      </div></div>
+      <div style="text-align:center;color:var(--line)">▲</div>
+      <div class="lane"><h5>Local, one-time (not deployed)</h5><div class="boxes">
+        <div class="box"><b>ingest_kb_articles.py</b><span>kb_source/*.docx → kb_index.json (ServiceNow shape). Removed the old <code>chat_client</code> ranker entirely.</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <!-- 8. WORKED EXAMPLE -->
+  <section>
+    <h2><span class="n">8</span> Worked example — “shared mailbox not working after M365 migration”</h2>
+    <div class="card seq">
+      <div class="row"><div class="lane-lbl">Caller →</div><div class="msg"><code>{ "message": "my shared mailbox stopped working after migration" }</code> (no conv_id)</div></div>
+      <div class="row"><div class="lane-lbl">Function</div><div class="msg"><code>create_conversation()</code> → <code>conv_id = "conv_abc"</code></div></div>
+      <div class="row"><div class="lane-lbl">Agent →</div><div class="msg"><span style="color:var(--search)">search</span> &nbsp;<code>{ "status":"search", "query":"shared mailbox not working after M365 migration" }</code></div></div>
+      <div class="row"><div class="lane-lbl">Function</div><div class="msg"><code>get_all_candidates()</code> → the WHOLE KB <code>[KB0024755, KB0022054, …]</code> → fed back as <code>KB_SEARCH_RESULTS</code> (no ranker)</div></div>
+      <div class="row"><div class="lane-lbl">Agent →</div><div class="msg"><span style="color:var(--resolved)">resolved</span> &nbsp;<code>{ "status":"resolved", "kb_id":"KB0024755", "summary":"Shared mailbox stopped working after migration.", … }</code></div></div>
+      <div class="row"><div class="lane-lbl">Function</div><div class="msg">guard: <code>is_known_kb_id("KB0024755")</code> = ✅ true</div></div>
+      <div class="row"><div class="lane-lbl">→ Caller</div><div class="msg"><code>200 { "status":"resolved", "kb_id":"KB0024755", "agent_message":"Thank you for the details …", "chat_close":true }</code></div></div>
+    </div>
+  </section>
+
+  <!-- 9. CONFIG / DEPLOY -->
+  <section>
+    <h2><span class="n">9</span> Config &amp; deploy — quick reference</h2>
+    <div class="card">
+      <table>
+        <tr><th>Setting</th><th>Meaning</th></tr>
+        <tr><td><code>foundry.project_endpoint</code></td><td>Foundry project (<code>…/api/projects/&lt;project&gt;</code>).</td></tr>
+        <tr><td><code>foundry.agent_name</code></td><td><b>clasification-agent-v2</b> — provision a NEW Foundry agent with this exact name + the v2 prompt.</td></tr>
+        <tr><td><code>foundry.auto_create_session</code> / <code>max_search_rounds</code></td><td>Mint conv_id when absent · per-turn search budget (6).</td></tr>
+        <tr><td><code>knowledge_base.index_path</code></td><td><code>kb_index.json</code> (you build it with the ingest).</td></tr>
+        <tr><td>route (<code>function.json</code>)</td><td><code>outlook-classification-v2</code>.</td></tr>
+      </table>
+      <p style="color:var(--muted);margin:14px 0 0;font-size:13px">
+        <b>Managed Identity role:</b> <span class="kbd">Azure AI User</span> (Foundry project). <b>No</b> Cognitive Services OpenAI role — there is no ranker. No <code>azure_openai</code> config section. No secrets in code or config. The local ingest needs <code>python-docx</code> (not deployed).
+      </p>
+    </div>
+  </section>
+
+  <div class="foot">
+    Generated from the v2 source in <code>classification_agent__foundry_version_v2/</code> — entry <code>__init__.py</code>, orchestration <code>turn_orchestrator.py</code>, Foundry <code>foundry_agent_client.py</code>, KB source <code>servicenow_kb_source.py</code>, contracts <code>service_contracts.py</code>, ingest <code>ingest_kb_articles.py</code>. Documentation only; excluded from deploy via <code>.funcignore</code>.
+  </div>
+
+</div>
+</body>
+</html>
